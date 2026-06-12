@@ -1,0 +1,43 @@
+# AD-Compare Stage 2: ViT + LLM LoRA + CE 全参数
+stage: 2
+model_name_or_path: ./outputs/stage1_llm_lora_merged       # <- Stage 1 merge 输出
+data_path: /path/to/stage2_data.json                       # <- 修改为你的训练数据路径
+image_base_dir: /path/to/images                            # <- 修改为图片根目录
+output_dir: ./outputs/stage2_vit_llm_lora
+
+attn_implementation: flash_attention_2
+
+# 分组学习率：ViT 用 base lr 的 1/10 防止预训练特征被破坏（CE 强制走 base lr）
+mm_projector_lr: 0.0
+vision_tower_lr: 5.0e-6  # base_lr=5e-5, ViT lr = 1/10
+
+num_train_epochs: 2
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 5.0e-5
+weight_decay: 0.05
+warmup_ratio: 0.05
+lr_scheduler_type: cosine
+logging_steps: 10
+save_strategy: epoch
+save_total_limit: 2
+
+max_seq_length: 4096
+max_image_side: 448
+bf16: true
+gradient_checkpointing: true
+dataloader_num_workers: 2
+remove_unused_columns: false
+report_to: none
+deepspeed: deepspeed/ds_config_zero2.json
+
+# Stage 2：LoRA on LLM + ViT, exclude compare_visual_encoder；CE 全参数
+use_lora: true
+freeze_vit: false
+freeze_llm: false
+train_ce: true
+lora_rank: 64
+lora_alpha: 128
+lora_dropout: 0.05
+lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj, qkv, proj, linear_fc1, linear_fc2]
+lora_exclude_modules: [compare_visual_encoder]

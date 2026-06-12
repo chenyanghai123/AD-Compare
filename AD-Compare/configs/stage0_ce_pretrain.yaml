@@ -1,0 +1,39 @@
+# AD-Compare Stage 0: Comparison Encoder 全参数预训练
+stage: 0
+model_name_or_path: /path/to/AD-Compare-Qwen3-VL-8B-init  # <- 修改为你的初始 checkpoint 路径
+data_path: /path/to/stage0_data.json                       # <- 修改为你的训练数据路径
+image_base_dir: /path/to/images                            # <- 修改为图片根目录
+output_dir: ./outputs/stage0_ce_pretrain
+
+# Attention backend：FA2 比 SDPA 快 2-3x，显存省 30%（需 pip install flash-attn>=2.5.0）
+attn_implementation: flash_attention_2
+
+# 分组学习率（stage 0 只训 CE，分组接口保留但实际无效）
+mm_projector_lr: 0.0
+vision_tower_lr: 0.0
+
+num_train_epochs: 2
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 1.0e-3
+weight_decay: 0.05
+warmup_ratio: 0.05
+lr_scheduler_type: cosine
+logging_steps: 10
+save_strategy: epoch
+save_total_limit: 2
+
+max_seq_length: 4096
+max_image_side: 448
+bf16: true
+gradient_checkpointing: true
+dataloader_num_workers: 2
+remove_unused_columns: false
+report_to: none
+deepspeed: deepspeed/ds_config_zero2.json
+
+# CE 训练配置
+use_lora: false
+freeze_vit: true
+freeze_llm: true
+train_ce: true
