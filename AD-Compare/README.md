@@ -131,7 +131,7 @@ bash scripts/run_stage3.sh   # Multitask SFT (all unfrozen)
 
 ## Evaluation Pipeline
 
-**核心创新**：无需手动为每张 NG 图指定参考 OK 图，通过 embedding 相似度自动从 OK 池检索最佳参考。
+辅助功能：无需手动为每张 NG 图指定参考 OK 图，通过 embedding 相似度自动从 OK 池检索最佳参考。
 
 ```bash
 # 设置环境变量
@@ -179,7 +179,7 @@ AD-Compare/
 
 1. **基座模型**：从 [Qwen3-VL-8B-Instruct](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct) 下载
 2. **初始 checkpoint**：运行 `scripts/run_build_init.sh` 从基座构建
-3. **训练后权重**：按四阶段训练管线训练获得
+3. **训练后权重**：按四阶段训练管线训练获得，（训练好的版本：https://hf-mirror.com/chenyanghai123/stage3_multitask_sft_merged）
 
 ## License
 
