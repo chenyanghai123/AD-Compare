@@ -1,0 +1,48 @@
+# AD-Compare Stage 4: GRPO 强化学习（基于 Stage 3 merged 模型）
+stage: 4
+model_name_or_path: ./outputs/stage3_multitask_sft_merged   # <- Stage 3 merge 输出
+data_path: /path/to/stage3_data.json                       # <- 复用 Stage 3 训练数据
+image_base_dir: /path/to/images                            # <- 修改为图片根目录
+output_dir: ./outputs/stage4_grpo
+
+attn_implementation: flash_attention_2
+
+# 分组学习率
+mm_projector_lr: 0.0
+vision_tower_lr: 0.0  # ViT 冻结，无需分组 lr
+
+num_train_epochs: 1
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-6
+weight_decay: 0.01
+warmup_ratio: 0.05
+lr_scheduler_type: cosine
+logging_steps: 5
+save_strategy: epoch
+save_total_limit: 1
+
+max_image_side: 448
+bf16: true
+gradient_checkpointing: true
+report_to: none
+deepspeed: deepspeed/ds_config_zero2.json
+
+# LoRA: LLM only；ViT + CE 冻结（参考 AD-Copilot 论文 Stage 3）
+use_lora: true
+freeze_vit: true
+freeze_llm: false
+train_ce: false
+lora_rank: 64
+lora_alpha: 128
+lora_dropout: 0.0
+lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+lora_exclude_modules: [compare_visual_encoder, visual]
+
+# GRPO 超参数
+num_generations: 8
+beta: 0.04
+max_new_tokens: 512
+reward_weights: [0.1, 0.1, 0.5, 0.3]
+temperature: 1.0
+top_p: 0.95

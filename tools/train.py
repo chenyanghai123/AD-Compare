@@ -16,6 +16,7 @@ AD-Compare 统一训练入口（合并 Stage 0 / 1 / 2 / 3）
 - stage 0：CE 全参，无 LoRA
 - stage 1/2/3：CE 全参 + LoRA（LLM only / LLM+ViT / LLM+ViT 多任务）
 - 训练后自动 cascade merge（仅 LoRA stage），输出 {output_dir}_merged
+- Stage 4 (GRPO) 使用 tools/train_grpo.py
 """
 import os
 import sys

@@ -2,13 +2,14 @@
 
 **Industrial Anomaly Detection via Comparison-Enhanced Multimodal LLM**
 
-AD-Compare 是一个基于 Qwen3-VL-8B 的工业异常检测多模态大模型训练框架，通过引入 **Comparison Encoder（CE）** 模块实现参考图与测试图的对比推理，并提供完整的四阶段级联训练管线和创新的自动评估方案。
+AD-Compare 是一个基于 Qwen3-VL-8B 的工业异常检测多模态大模型训练框架，通过引入 **Comparison Encoder（CE）** 模块实现参考图与测试图的对比推理，并提供完整的五阶段级联训练管线（含 GRPO 强化学习）和创新的自动评估方案。
 
 ## Highlights
 
 1. **Comparison Encoder 模块** — 双向交叉注意力机制，100 个 learnable query，学习 OK（参考图）与 NG（测试图）之间的对比特征，通过 1152→4096 投影注入 LLM
-2. **四阶段 Cascade 训练管线** — CE Pretrain → LLM LoRA → ViT+LLM LoRA → Multitask SFT，逐步解冻模块，每阶段 LoRA 训完自动 merge
-3. **自动 Reference 匹配评估** — 基于 embedding 的 OK 图自动检索（无需人工配对），实现端到端的 grounding 评估
+2. **五阶段 Cascade 训练管线** — CE Pretrain → LLM LoRA → ViT+LLM LoRA → Multitask SFT → GRPO，逐步解冻模块，每阶段 LoRA 训完自动 merge
+3. **GRPO 强化学习** — 基于规则奖励（IoU + 分类 + 格式 + 数量）优化定位精度和分类准确率
+4. **自动 Reference 匹配评估** — 基于 embedding 的 OK 图自动检索（无需人工配对），实现端到端的 grounding 评估
 
 ## Architecture
 
@@ -103,10 +104,10 @@ print(pred)
 bash scripts/run_build_init.sh
 ```
 
-### Step 1-4: Four-Stage Cascade Training
+### Step 1-5: Five-Stage Cascade Training
 
 ```bash
-# 全流程一键启动（Stage 0 → 1 → 2 → 3，含自动 LoRA merge）
+# 全流程一键启动（Stage 0 → 1 → 2 → 3 → 4，含自动 LoRA merge）
 bash scripts/run_pipeline.sh
 
 # 或单独运行某个阶段
@@ -114,6 +115,7 @@ bash scripts/run_stage0.sh   # CE pretrain (freeze ViT+LLM)
 bash scripts/run_stage1.sh   # LLM LoRA + CE
 bash scripts/run_stage2.sh   # ViT LoRA + LLM LoRA + CE
 bash scripts/run_stage3.sh   # Multitask SFT (all unfrozen)
+bash scripts/run_stage4.sh   # GRPO reinforcement learning
 ```
 
 **训练配置**：修改 `configs/stage*.yaml` 中的路径（`model_name_or_path`, `data_path`, `output_dir`）
@@ -128,6 +130,7 @@ bash scripts/run_stage3.sh   # Multitask SFT (all unfrozen)
 | 1 | LLM (LoRA), CE | ViT | ZeRO-2 | 注入语言理解能力 |
 | 2 | ViT (LoRA), LLM (LoRA), CE | — | ZeRO-2 | 视觉+语言联合微调 |
 | 3 | All | — | ZeRO-2 | 多任务 SFT（grounding + cls + desc） |
+| 4 | LLM (LoRA) | ViT, CE | ZeRO-2 | GRPO 强化学习（IoU+cls 奖励） |
 
 ## Evaluation Pipeline
 
@@ -163,11 +166,17 @@ AD-Compare/
 │   ├── modeling_ad_compare.py     # CE + Qwen3-VL 模型架构
 │   ├── processing_ad_compare.py   # Processor（compare token 扩展）
 │   ├── dataset_ad_compare.py      # Dataset + Collator
+│   ├── dataset_grpo.py            # GRPO 数据集
+│   ├── reward_functions.py        # GRPO 奖励函数
 │   └── build_initial_checkpoint.py
-├── configs/                       # 四阶段训练配置 (YAML)
+├── configs/                       # 五阶段训练配置 (YAML)
 ├── deepspeed/                     # DeepSpeed ZeRO 配置
 ├── scripts/                       # Shell 启动脚本
 ├── tools/                         # 训练/推理/merge 入口
+│   ├── train.py                   # Stage 0-3 统一训练入口
+│   ├── train_grpo.py              # Stage 4 GRPO 训练入口
+│   ├── infer.py                   # 推理脚本
+│   └── merge_lora.py              # LoRA merge 工具
 ├── eval/                          # 评估 pipeline（6 步）
 ├── requirements.txt
 └── setup.py

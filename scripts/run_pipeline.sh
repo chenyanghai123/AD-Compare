@@ -1,5 +1,5 @@
 #!/bin/bash
-# AD-Compare: 串行四阶段训练 pipeline（含初始 checkpoint 构建 + LoRA merge）
+# AD-Compare: 串行五阶段训练 pipeline（含初始 checkpoint 构建 + LoRA merge + GRPO）
 set -e
 echo "===== AD-Compare Full Training Pipeline ====="
 echo "Start: $(date)"
@@ -20,6 +20,9 @@ bash "$SCRIPT_DIR/run_stage2.sh"
 echo "[pipeline] Stage 2 done, Stage 3 (Multitask SFT) starting..."
 bash "$SCRIPT_DIR/run_stage3.sh"
 
-echo "[pipeline] Stage 3 done."
+echo "[pipeline] Stage 3 done, Stage 4 (GRPO) starting..."
+bash "$SCRIPT_DIR/run_stage4.sh"
+
+echo "[pipeline] Stage 4 done."
 echo "===== AD-Compare Pipeline COMPLETE ====="
 echo "End: $(date)"
