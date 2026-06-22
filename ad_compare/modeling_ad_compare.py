@@ -1,13 +1,13 @@
 """
-AD-Copilot Qwen3-VL-8B 版本 modeling
+AD-Compare Qwen3-VL-8B modeling
 
 继承自 transformers 4.57+ 的 Qwen3VLForConditionalGeneration。
-保留 AD-Copilot 的 ComparisonEncoder（CE）模块，但适配 Qwen3-VL 的：
-- ViT hidden_size: 1152（原 Qwen2.5-VL: 1280）
-- LLM hidden_size: 4096（原 Qwen2.5-VL: 3584）
-- ViT 输出含 deepstack_feature_lists（Qwen2.5-VL 没有）
-- get_rope_index 不再依赖 second_per_grid_ts（Qwen3-VL 用 timestamp 文本表示视频时间）
-- forward 用 masked_scatter 注入 image_embeds（Qwen2.5-VL 是 inplace 替换）
+实现 ComparisonEncoder（CE）模块，适配 Qwen3-VL：
+- ViT hidden_size: 1152
+- LLM hidden_size: 4096
+- ViT 输出含 deepstack_feature_lists
+- get_rope_index 不再依赖 second_per_grid_ts
+- forward 用 masked_scatter 注入 image_embeds
 
 CE 注入策略：
 1. ViT.forward 在 merger 之前切分 hidden_states 喂给 CE，得到 [B, 100, 1152] 的对比特征
@@ -34,11 +34,10 @@ from transformers.models.qwen3_vl.configuration_qwen3_vl import (
     Qwen3VLTextConfig,
 )
 
-# ============================================================================
 # Configuration
-# ============================================================================
+
 class AdCompareQwen3VLVisionConfig(Qwen3VLVisionConfig):
-    """Qwen3-VL ViT config + AD-Copilot CE token 数。"""
+    """Qwen3-VL ViT config + CE token 数。"""
     model_type = "ad_compare_qwen3_vision"
 
     def __init__(self, compare_token_size: int = 100, **kwargs):
@@ -59,11 +58,10 @@ class AdCompareQwen3VLConfig(Qwen3VLConfig):
         self.sequence_compare = True
 
 
-# ============================================================================
-# Comparison Encoder（核心：1152 -> 4096 投影版）
-# ============================================================================
+# Comparison Encoder
+
 class OptimizedCrossAttention(nn.Module):
-    """与 AD-Copilot 原版一致；config.hidden_size=1152, num_heads=16。"""
+    """双向交叉注意力模块；config.hidden_size=1152, num_heads=16。"""
 
     def __init__(self, config, is_cross_attention: bool = True):
         super().__init__()
@@ -135,7 +133,7 @@ class OptimizedCrossAttention(nn.Module):
 
 class AdCompareQwen3CompareVisualEncoder(nn.Module):
     """
-    ComparisonEncoder for Qwen3-VL. 与 Qwen2.5-VL 版结构等价：
+    Comparison Encoder：
     - encoder: 双向 cross attention（previous<->current）+ 2x SwiGLU MLP
     - decoder: 100 个 learnable query 通过 cross attention 提取对比特征
     - compare_projector: hidden_size(1152) -> out_hidden_size(4096)
@@ -255,7 +253,7 @@ class AdCompareQwen3CompareVisualEncoder(nn.Module):
         current_features = residual + cross2
         residual = current_features
         mlp2 = self.encoder_mlp2(self.encoder_norm4(current_features))
-        # 与 AD-Copilot Qwen2.5-VL 版保持一致：减号
+        # 残差连接使用减法（与 CE 原始设计一致）
         current_features = residual - mlp2
         return current_features
 
@@ -275,9 +273,8 @@ class AdCompareQwen3CompareVisualEncoder(nn.Module):
         return queries
 
 
-# ============================================================================
-# Vision Model（继承自 Qwen3VLVisionModel，加 CE）
-# ============================================================================
+# Vision Model
+
 class AdCompareQwen3VLVisionModel(Qwen3VLVisionModel):
     config: AdCompareQwen3VLVisionConfig
 
@@ -323,7 +320,7 @@ class AdCompareQwen3VLVisionModel(Qwen3VLVisionModel):
                 ](hidden_states)
                 deepstack_feature_lists.append(deepstack_feature)
 
-        # ========== AD-Copilot 关键修改：在 merger 之前喂给 CE ==========
+        # ========== CE 关键修改：在 merger 之前喂给 CE ==========
         # hidden_states 当前 shape = [total_patches, 1152]
         split_sizes = grid_thw.prod(-1).tolist()
         splited_hidden_states_before_merger = list(torch.split(hidden_states, split_sizes))
@@ -336,9 +333,8 @@ class AdCompareQwen3VLVisionModel(Qwen3VLVisionModel):
         return hidden_states, deepstack_feature_lists, compare_visual_embeds
 
 
-# ============================================================================
-# Top-level Model（继承 Qwen3VLModel）
-# ============================================================================
+# Top-level Model
+
 class AdCompareQwen3VLModel(Qwen3VLModel):
     config: AdCompareQwen3VLConfig
     _no_split_modules = ["Qwen3VLTextDecoderLayer", "Qwen3VLVisionBlock", "AdCompareQwen3CompareVisualEncoder"]
@@ -349,7 +345,6 @@ class AdCompareQwen3VLModel(Qwen3VLModel):
         self.visual = AdCompareQwen3VLVisionModel._from_config(config.vision_config)
         self.compare_token_size = getattr(config.vision_config, "compare_token_size", 100)
 
-    # -------------------- get_image_features --------------------
     def get_image_features(
         self,
         pixel_values: torch.FloatTensor,
@@ -401,7 +396,6 @@ class AdCompareQwen3VLModel(Qwen3VLModel):
 
         return tuple(enhanced_image_embeds), enhanced_deepstack
 
-    # -------------------- get_rope_index --------------------
     def get_rope_index(
         self,
         input_ids: Optional[torch.LongTensor] = None,
@@ -523,33 +517,29 @@ class AdCompareQwen3VLModel(Qwen3VLModel):
             return position_ids, mrope_position_deltas
 
 
-# ============================================================================
-# Top-level Generation Model
-# ============================================================================
+# Generation Model
+
 class AdCompareQwen3VLForConditionalGeneration(Qwen3VLForConditionalGeneration):
     config_class = AdCompareQwen3VLConfig
 
     def __init__(self, config):
         super().__init__(config)
-        # 替换 self.model 为 AD-Copilot 版本
+        # 替换 self.model 为带 CE 的版本
         self.model = AdCompareQwen3VLModel(config)
 
 
-# ============================================================================
-# Backward-compat alias config (读取原 init ckpt 的 model_type="ad_copilot_qwen3")
-# ============================================================================
+# Backward-compat alias（兼容旧 model_type="ad_copilot_qwen3" 的 checkpoint）
+
 class _AdCopilotLegacyVisionConfig(AdCompareQwen3VLVisionConfig):
     model_type = "ad_copilot_qwen3_vision"
 
 
 class _AdCopilotLegacyConfig(AdCompareQwen3VLConfig):
-    """Alias 仅用于读取旧 init ckpt（model_type='ad_copilot_qwen3'）的 config。
-    实体完全等同于 AdCompareQwen3VLConfig。"""
+    """兼容旧 checkpoint 的 config alias，实体完全等同于 AdCompareQwen3VLConfig。"""
     model_type = "ad_copilot_qwen3"
     sub_configs = {"vision_config": _AdCopilotLegacyVisionConfig, "text_config": Qwen3VLTextConfig}
 
 
-# 注册到 transformers AutoConfig / AutoModel
 def _register():
     try:
         from transformers import AutoConfig, AutoModelForImageTextToText, AutoProcessor
@@ -561,7 +551,7 @@ def _register():
         )
         AutoProcessor.register(AdCompareQwen3VLConfig, AdCompareQwen3VLProcessor)
 
-        # 向后兼容：让 “ad_copilot_qwen3” 旧 model_type 也被当作 AdCompare 加载
+        # 向后兼容旧 model_type
         AutoConfig.register("ad_copilot_qwen3", _AdCopilotLegacyConfig)
         AutoModelForImageTextToText.register(
             _AdCopilotLegacyConfig, AdCompareQwen3VLForConditionalGeneration

@@ -1,16 +1,8 @@
-"""Task 1 — 抽 OK 池 (15380 张) 视觉特征。
-
-外网不可用，且仓库内未提供 SigLIP/CLIP 本地权重；改用与 Qwen3-VL ViT 同源的轻量
-``raw`` 策略（灰度 → 64×64 → flatten → L2-normalize）。
-
-理由：
-1. OK 池均为 384×384 灰度晶圆纹理图，简单的像素相似度足以反映 "样式 / 区域分布" 相似度；
-2. 不依赖外部模型下载，30 秒内即可抽完；
-3. 可作为 stage3 model.visual ViT embedding 不可用时的稳定 fallback。
+"""抽取 OK 池视觉特征（灰度 → 64×64 → flatten → L2-normalize）。
 
 输出:
-    meta/eval_infos/silicon_instance_grounding/ok_features.npy   shape=(15380, 4096) float32
-    meta/eval_infos/silicon_instance_grounding/ok_paths.txt      每行一个 OK 绝对路径
+    {EVAL_OUT}/ok_features.npy   shape=(N, 4096) float32
+    {EVAL_OUT}/ok_paths.txt      每行一个 OK 绝对路径
 """
 
 from __future__ import annotations

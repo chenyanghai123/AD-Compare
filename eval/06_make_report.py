@@ -1,12 +1,4 @@
-"""Task 7 — 生成 SiliconInstance Grounding 评估报告 REPORT.md。
-
-依赖产物:
-- pair_map.json / ng_index.json
-- pred_raw.jsonl
-- metrics.json / pr_curve.png / iou_hist.png / per_image_metrics.jsonl
-- vis/*.jpg + vis_index.json
-- task4_run.log
-"""
+"""生成评估报告 REPORT.md。"""
 
 from __future__ import annotations
 

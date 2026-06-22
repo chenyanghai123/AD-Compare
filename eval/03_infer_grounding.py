@@ -1,11 +1,7 @@
-"""Task 4 — 批量 grounding 推理（663 张 NG × 单卡 A800）。
+"""批量 grounding 推理（支持断点续跑）。
 
-复用 stage3_multitask_sft_merged 模型 + 训练 grounding prompt + 模态对齐预处理：
-- NG: 灰度→RGB（保持原尺寸）
-- OK: 灰度→RGB→resize 到 NG 尺寸
-
-输入: meta/eval_infos/silicon_instance_grounding/ng_index.json
-输出: meta/eval_infos/silicon_instance_grounding/pred_raw.jsonl  (jsonl, 增量写, 支持续跑)
+输入: {EVAL_OUT}/ng_index.json
+输出: {EVAL_OUT}/pred_raw.jsonl
 """
 
 from __future__ import annotations

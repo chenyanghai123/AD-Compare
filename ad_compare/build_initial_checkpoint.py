@@ -36,7 +36,7 @@ def build(src: str, dst: str, compare_token_size: int = 100):
     dst = Path(dst)
     dst.mkdir(parents=True, exist_ok=True)
 
-    # ---------------- 1. 加载源 config，转换为 AdCompare config ----------------
+    # 1. 加载源 config，转换为 AdCompare config
     print(f"[1/5] 读取源 config: {src}/config.json")
     src_cfg = Qwen3VLConfig.from_pretrained(src)
     new_cfg = AdCompareQwen3VLConfig(
@@ -53,39 +53,35 @@ def build(src: str, dst: str, compare_token_size: int = 100):
     )
     new_cfg.architectures = ["AdCompareQwen3VLForConditionalGeneration"]
 
-    # ---------------- 2. 加载源模型权重 ----------------
+    # 2. 加载源模型权重
     print(f"[2/5] 加载源模型权重 (bf16): {src}")
     src_model = Qwen3VLForConditionalGeneration.from_pretrained(
         src, torch_dtype=torch.bfloat16, low_cpu_mem_usage=True,
     )
 
-    # ---------------- 3. 构造目标模型骨架并复制权重 ----------------
+    # 3. 构造目标模型骨架并复制权重
     print(f"[3/5] 构造 AdCompare 模型骨架（CE 随机初始化）")
     new_model = AdCompareQwen3VLForConditionalGeneration(new_cfg)
     new_model = new_model.to(torch.bfloat16)
 
-    # strict=False 允许 CE 这些参数缺失
     src_state = src_model.state_dict()
     missing, unexpected = new_model.load_state_dict(src_state, strict=False)
     ce_keys = [k for k in missing if "compare_visual_encoder" in k]
     other_missing = [k for k in missing if "compare_visual_encoder" not in k]
-    print(f"    CE 模块（待训练）参数 missing: {len(ce_keys)} 个")
-    print(f"    其它 missing （非预期）: {len(other_missing)} 个")
-    print(f"    unexpected: {len(unexpected)} 个")
+    print(f"    CE missing: {len(ce_keys)}, other missing: {len(other_missing)}, unexpected: {len(unexpected)}")
     if other_missing:
         print(f"    !!! 存在非 CE 的 missing 参数（前 5 个）: {other_missing[:5]}")
     if unexpected:
         print(f"    !!! 存在 unexpected（前 5 个）: {unexpected[:5]}")
 
-    # 显式初始化 CE
     new_model.model.visual.compare_visual_encoder.init_query_embeddings()
     print("    CE.query_embeddings 已 normal_(0, 0.02)")
 
-    # ---------------- 4. 保存模型 + config ----------------
+    # 4. 保存模型 + config
     print(f"[4/5] 保存模型到 {dst}")
     new_model.save_pretrained(dst, safe_serialization=True)
 
-    # ---------------- 5. 复制 tokenizer / processor 文件并构建 AdCompare Processor ----------------
+    # 5. 复制 tokenizer / processor 文件并构建 AdCompare Processor
     print(f"[5/5] 复制 tokenizer/processor 配置 + 构建 AdCompare Processor")
     files_to_copy = [
         "tokenizer.json", "tokenizer_config.json", "vocab.json", "merges.txt",
@@ -97,7 +93,6 @@ def build(src: str, dst: str, compare_token_size: int = 100):
         if sf.exists():
             shutil.copy2(sf, dst / fname)
 
-    # 构建并保存 AdCompare Processor
     image_processor = AutoImageProcessor.from_pretrained(src)
     video_processor = AutoVideoProcessor.from_pretrained(src)
     tokenizer = AutoTokenizer.from_pretrained(src)

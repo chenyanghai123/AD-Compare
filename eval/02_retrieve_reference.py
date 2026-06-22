@@ -1,14 +1,8 @@
-"""Task 2 — 为 663 张 NG 检索 top-1 OK reference + 整合 GT bbox。
-
-流程：
-1. 用与 Task 1 相同的 raw embedding 编码每张 NG（先灰度→64×64→flatten→L2-norm）；
-2. cosine = NG_emb @ OK_emb.T，取 argmax；
-3. 为每张 NG 解析对应的 .tzjson，得到 GT bbox 列表（原图坐标系）；
-4. 落 pair_map.json 与 ng_index.json，并打印 5 对人工 sanity check。
+"""为每张 NG 检索 top-1 OK reference + 整合 GT bbox。
 
 输出:
-    meta/eval_infos/silicon_instance_grounding/pair_map.json
-    meta/eval_infos/silicon_instance_grounding/ng_index.json
+    {EVAL_OUT}/pair_map.json
+    {EVAL_OUT}/ng_index.json
 """
 
 from __future__ import annotations

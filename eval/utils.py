@@ -1,14 +1,9 @@
 """AD-Compare 评估 pipeline 共享工具。
 
-涵盖：
-- 数据集路径配置（通过环境变量或函数参数）
-- tzjson 解析（polygon → bbox）
-- LLM 输出 JSON 容错抽取
-- smart_resize 计算（与 Qwen3-VL Processor 一致）
-- 模态对齐预处理
+涵盖路径配置、tzjson 解析、LLM 输出抽取、smart_resize、模态对齐等。
 
-环境变量配置：
-    EVAL_DATA_ROOT: 评估数据集根目录（含 images/1, images/ok, Annotations/）
+环境变量：
+    EVAL_DATA_ROOT: 评估数据集根目录
     EVAL_OUT_DIR:   评估输出目录（默认 ./eval_outputs）
     MODEL_PATH:     模型路径（默认 ./checkpoints/stage3_multitask_sft_merged）
 """
@@ -25,9 +20,8 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from PIL import Image
 
 
-# ---------------------------------------------------------------------------
-# 路径配置（通过环境变量，用户按需设置）
-# ---------------------------------------------------------------------------
+# 路径配置（通过环境变量）
+
 EVAL_DATA_ROOT = Path(os.environ.get("EVAL_DATA_ROOT", "./data/eval_dataset"))
 NG_DIR = EVAL_DATA_ROOT / "images" / "1"
 OK_DIR = EVAL_DATA_ROOT / "images" / "ok"
@@ -50,9 +44,8 @@ GROUNDING_PROMPT = (
 )
 
 
-# ---------------------------------------------------------------------------
 # NG 列表枚举
-# ---------------------------------------------------------------------------
+
 def list_ng_paths() -> List[Path]:
     """返回 NG 的 jpg 绝对路径（按文件名排序）。"""
     return sorted(NG_DIR.glob("*.jpg"))
@@ -83,9 +76,8 @@ def load_split_set(csv_path: Path) -> set:
     return out
 
 
-# ---------------------------------------------------------------------------
 # tzjson 解析
-# ---------------------------------------------------------------------------
+
 def _polygon_to_bbox(points: Any) -> Optional[Tuple[int, int, int, int]]:
     """tzjson 的 points 形如 [[[x,y],[x,y],...]] 或 [[x,y],...]，统一展平后取外接矩形。"""
     if not points:
@@ -151,9 +143,8 @@ def get_image_size_from_tzjson(path: Path) -> Optional[Tuple[int, int]]:
     return None
 
 
-# ---------------------------------------------------------------------------
 # Qwen3-VL smart_resize
-# ---------------------------------------------------------------------------
+
 SMART_RESIZE_FACTOR = 28
 SMART_RESIZE_MIN_PIXELS = 64 * 28 * 28           # 50_176
 SMART_RESIZE_MAX_PIXELS = 1280 * 28 * 28         # 1_003_520
@@ -194,9 +185,8 @@ def scale_bbox(
     return [x1 * fx, y1 * fy, x2 * fx, y2 * fy]
 
 
-# ---------------------------------------------------------------------------
-# 模态对齐：NG → 灰度→3 通道；OK 灰度→3 通道并 resize 到 NG 尺寸
-# ---------------------------------------------------------------------------
+# 模态对齐
+
 def load_aligned_pair(ng_path: Path, ok_path: Path) -> Tuple[Image.Image, Image.Image]:
     """返回 (ok_rgb, ng_rgb)，ok 已 resize 到 ng 尺寸。"""
     ng = Image.open(ng_path).convert("L").convert("RGB")
@@ -206,9 +196,8 @@ def load_aligned_pair(ng_path: Path, ok_path: Path) -> Tuple[Image.Image, Image.
     return ok, ng
 
 
-# ---------------------------------------------------------------------------
-# LLM 输出 JSON 容错解析
-# ---------------------------------------------------------------------------
+# LLM 输出 JSON 解析
+
 _RE_JSON_ARRAY = re.compile(r"\[\s*(?:\{[^\[\]]*?\}\s*,?\s*)+\]", re.DOTALL)
 _RE_BBOX = re.compile(r'"bbox_2d"\s*:\s*\[\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\]')
 _RE_LABEL = re.compile(r'"label"\s*:\s*"([^"]*)"')
@@ -255,9 +244,8 @@ def extract_json_from_text(text: str) -> List[Dict[str, Any]]:
     return out
 
 
-# ---------------------------------------------------------------------------
 # bbox 几何
-# ---------------------------------------------------------------------------
+
 def iou_xyxy(a: Iterable[float], b: Iterable[float]) -> float:
     ax1, ay1, ax2, ay2 = a
     bx1, by1, bx2, by2 = b

@@ -1,5 +1,5 @@
 """
-AD-Copilot Qwen3-VL Processor
+AD-Compare Qwen3-VL Processor
 
 继承自 Qwen3VLProcessor，关键修改：在文本中把 image_token 展开时多 +100 个 compare placeholder。
 其他逻辑（视频时间戳、video_metadata、_calculate_timestamps）保持父类实现。
@@ -20,7 +20,7 @@ from transformers.processing_utils import Unpack
 
 
 class AdCompareQwen3VLProcessor(Qwen3VLProcessor):
-    """Qwen3-VL Processor + AD-Copilot 100 个 compare placeholder。"""
+    """Qwen3-VL Processor + 100 个 compare placeholder。"""
 
     def __init__(
         self,
@@ -75,7 +75,7 @@ class AdCompareQwen3VLProcessor(Qwen3VLProcessor):
             for i in range(len(text)):
                 while self.image_token in text[i]:
                     num_image_tokens = image_grid_thw[index].prod() // merge_length
-                    # ★★ AD-Copilot 关键修改：+ compare_token_size ★★
+                    # 加上 compare_token_size 个 placeholder
                     total_tokens = int(num_image_tokens) + int(self.compare_token_size)
                     text[i] = text[i].replace(self.image_token, "<|placeholder|>" * total_tokens, 1)
                     index += 1

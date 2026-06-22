@@ -1,16 +1,9 @@
-"""Task 5 — 坐标系对齐 + class-agnostic mAP 计算。
+"""坐标系对齐 + class-agnostic mAP 计算。
 
-关键坐标系约定（已验证 stage3 训练数据）：
-- GT bbox 在 NG **原图坐标系**
-- PD bbox 在 **[0, 1000] 归一化坐标系**（Qwen-VL 训练惯例，max coord 见 stage3_real_clean.json）
-- 评估前把 PD 用 (orig_w/1000, orig_h/1000) 缩到原图坐标系，统一在原图坐标系比 IoU
+坐标系约定：
+- GT bbox: NG 原图坐标系
+- PD bbox: [0, 1000] 归一化坐标系（Qwen-VL 惯例），评估前缩放回原图
 
-输出指标 (class-agnostic, 忽略 8 类汉拼，只看 IoU)：
-- mAP@0.5 / mAP@[.5:.95] / Precision@0.5 / Recall@0.5 / F1@0.5
-- 每张图 IoU 分布、empty pred 比例、pd 数量分布
-- pr_curve.png + iou_hist.png
-
-输入: pred_raw.jsonl
 输出: metrics.json, pr_curve.png, iou_hist.png, per_image_metrics.jsonl
 """
 

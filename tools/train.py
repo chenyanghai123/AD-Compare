@@ -43,9 +43,8 @@ from ad_compare.dataset_ad_compare import (
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
 # Argument Dataclasses
-# ============================================================================
+
 @dataclass
 class ModelArguments:
     model_name_or_path: str = field(default="./checkpoints/init")
@@ -94,9 +93,8 @@ class AdCompareTrainingArguments(TrainingArguments):
     stage: int = field(default=0, metadata={"help": "0/1/2/3"})
 
 
-# ============================================================================
-# Stage-aware freeze / LoRA 设置
-# ============================================================================
+# Stage-aware freeze / LoRA
+
 def llm_linear_modules():
     return ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 
@@ -165,9 +163,8 @@ def setup_lora(model, lora_args: StageLoRAArguments, stage: int):
     return model
 
 
-# ============================================================================
 # 分组学习率
-# ============================================================================
+
 def build_param_groups(model, base_lr: float, weight_decay: float,
                        mm_projector_lr: float = 0.0,
                        vision_tower_lr: float = 0.0):
@@ -243,9 +240,8 @@ class GroupedLRTrainer(Trainer):
         return self.optimizer
 
 
-# ============================================================================
 # YAML loader
-# ============================================================================
+
 def load_yaml_to_args(yaml_path: str, cli_overrides: List[str]):
     with open(yaml_path) as f:
         cfg = yaml.safe_load(f) or {}
@@ -276,9 +272,6 @@ def load_yaml_to_args(yaml_path: str, cli_overrides: List[str]):
     return m, d, l, t
 
 
-# ============================================================================
-# Main
-# ============================================================================
 def main():
     if len(sys.argv) < 2:
         print(__doc__)

@@ -1,4 +1,4 @@
-"""ad_compare 数据集与 collator（与 AD-Copilot 完全一致的原始 messages+images 格式）"""
+"""ad_compare 数据集与 collator"""
 import json
 import logging
 from pathlib import Path
@@ -46,8 +46,7 @@ def load_processor(model_path: str, compare_token_size: int = 100) -> AdCompareQ
 
 
 class AdCompareDataset(Dataset):
-    """读取 AD-Copilot 原汁原味的 stageN_real.json
-    数据格式: [{"messages": [{"role":"user","content":"<image>..."}, {"role":"assistant","content":"..."}], "images": [path1, path2, ...]}]
+    """读取 stageN_real.json 训练数据（messages+images 格式）。
     通过 processor.apply_chat_template + processor() 转成 input_ids / pixel_values。
     超长样本会跳到下一条（禁止截断 input_ids，避免破坏 image token 对齐）。
     """

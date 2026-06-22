@@ -1,16 +1,6 @@
-"""Task 6 — 抽样可视化 GT vs PD 对比图（4 类典型样本各 5 张）。
+"""抽样可视化 GT vs PD 对比图。
 
-绘图说明：
-- 背景：NG 灰度化 + RGB 复制（与推理时输入完全一致），保持原图分辨率
-- 绿框：GT bbox（原图坐标系）
-- 红框：PD bbox（已从 [0,1000] 反归一到原图坐标系）
-- 左上角缩略图：检索到的 OK reference
-
-类别（按 best_iou）：
-- gold:    全命中（n_gt>0 且全部 IoU≥0.5）
-- partial: 部分命中（0 < IoU<0.5 + ≥0.5 同时存在 或 命中数 < n_gt）
-- miss:    全失（best_iou < 0.5）
-- fp:      n_pd 远多于 n_gt（n_pd > n_gt + 2，且至少 1 个 IoU < 0.3）
+分类可视化：gold（全命中）、partial（部分命中）、miss（全失）、fp（误检过多）。
 """
 
 from __future__ import annotations
