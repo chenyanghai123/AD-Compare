@@ -189,6 +189,7 @@ AD-Compare/
 1. **基座模型**：从 [Qwen3-VL-8B-Instruct](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct) 下载
 2. **初始 checkpoint**：运行 `scripts/run_build_init.sh` 从基座构建
 3. **训练后权重**：按四阶段训练管线训练获得，（训练好的版本：https://hf-mirror.com/chenyanghai123/stage3_multitask_sft_merged）
+                  (GRPO定位强化版本：https://huggingface.co/chenyanghai123/AD-Compare-Qwen3-VL-8B)
 
 ## License
 
