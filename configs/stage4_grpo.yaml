@@ -1,7 +1,7 @@
 # AD-Compare Stage 4: GRPO 强化学习（基于 Stage 3 merged 模型）
 stage: 4
 model_name_or_path: ./outputs/stage3_multitask_sft_merged   # <- Stage 3 merge 输出
-data_path: /path/to/stage3_data.json                       # <- 复用 Stage 3 训练数据
+data_path: /path/to/stage4_data.json                       
 image_base_dir: /path/to/images                            # <- 修改为图片根目录
 output_dir: ./outputs/stage4_grpo
 
