@@ -43,6 +43,6 @@ lora_exclude_modules: [compare_visual_encoder, visual]
 num_generations: 8
 beta: 0.04
 max_new_tokens: 512
-reward_weights: [0.1, 0.1, 0.5, 0.3]
+reward_weights: [0.1, 0.1, 0.6, 0.2]
 temperature: 1.0
 top_p: 0.95
