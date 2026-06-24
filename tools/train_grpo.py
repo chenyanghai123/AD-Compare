@@ -266,9 +266,11 @@ def main():
         report_to=g.report_to,
         num_generations=g.num_generations,
         beta=g.beta,
-        max_new_tokens=g.max_new_tokens,
+        max_completion_length=g.max_new_tokens,
         max_steps=g.max_steps if g.max_steps > 0 else -1,
         remove_unused_columns=False,
+        temperature=g.temperature,
+        top_p=g.top_p,
     )
 
     # 子类化 GRPOTrainer 以支持多图像输入和 GT annotations
@@ -301,7 +303,7 @@ def main():
 
     trainer = AdCompareGRPOTrainer(
         model=model,
-        processing_class=processor.tokenizer,
+        processing_class=processor,
         reward_funcs=weighted_rewards,
         args=grpo_config,
         train_dataset=train_ds,

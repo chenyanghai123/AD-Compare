@@ -15,6 +15,24 @@ _RE_BBOX = re.compile(r'"bbox_2d"\s*:\s*\[\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s
 _RE_LABEL = re.compile(r'"label"\s*:\s*"([^"]*)"')
 
 
+def _extract_text(completion: Any) -> str:
+    if isinstance(completion, str):
+        return completion
+    if isinstance(completion, list):
+        parts = []
+        for msg in completion:
+            if isinstance(msg, dict):
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    parts.append(content)
+                elif isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            parts.append(block.get("text", ""))
+        return "\n".join(parts)
+    return str(completion)
+
+
 def _parse_predictions(text: str) -> List[Dict[str, Any]]:
     """从 LLM 输出中解析 [{bbox_2d: [...], label: "..."}] 列表。"""
     if not text:
@@ -103,7 +121,8 @@ def format_reward(completions: List[str], **kwargs) -> List[float]:
     """检查输出是否为合法 JSON array。"""
     rewards = []
     for comp in completions:
-        preds = _parse_predictions(comp)
+        text = _extract_text(comp)
+        preds = _parse_predictions(text)
         rewards.append(1.0 if preds else 0.0)
     return rewards
 
@@ -112,7 +131,8 @@ def count_reward(completions: List[str], gt_annotations: List[Dict] = None, **kw
     """预测数量与 GT 数量的差异惩罚: 1 - |n_pd - n_gt| / max(n_gt, 1)。"""
     rewards = []
     for i, comp in enumerate(completions):
-        preds = _parse_predictions(comp)
+        text = _extract_text(comp)
+        preds = _parse_predictions(text)
         n_pd = len(preds)
         if gt_annotations and i < len(gt_annotations):
             n_gt = len(gt_annotations[i].get("bboxes", []))
@@ -132,7 +152,8 @@ def iou_reward(completions: List[str], gt_annotations: List[Dict] = None, **kwar
     """贪心匹配后平均 IoU（class-agnostic）。"""
     rewards = []
     for i, comp in enumerate(completions):
-        preds = _parse_predictions(comp)
+        text = _extract_text(comp)
+        preds = _parse_predictions(text)
         pd_boxes = [p["bbox_2d"] for p in preds]
         if gt_annotations and i < len(gt_annotations):
             gt_boxes = gt_annotations[i].get("bboxes", [])
@@ -154,7 +175,8 @@ def cls_reward(completions: List[str], gt_annotations: List[Dict] = None, **kwar
     """匹配对的 bbox 中 label 精确匹配的比例。"""
     rewards = []
     for i, comp in enumerate(completions):
-        preds = _parse_predictions(comp)
+        text = _extract_text(comp)
+        preds = _parse_predictions(text)
         if gt_annotations and i < len(gt_annotations):
             gt_boxes = gt_annotations[i].get("bboxes", [])
             gt_labels = gt_annotations[i].get("labels", [])

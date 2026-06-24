@@ -1,7 +1,4 @@
-"""GRPO 数据集模块。
-
-复用 SFT 阶段的数据格式（messages + images），但只提取 user prompt，
-并解析 assistant response 中的 GT bbox/label 用于奖励计算。
+"""GRPO 数据集模块
 """
 import json
 import logging
@@ -76,29 +73,26 @@ class GRPODataset(Dataset):
             user_content = messages[0].get("content", "")
             assistant_content = messages[1].get("content", "")
             gt = _parse_gt_from_text(assistant_content)
-            # 构建 prompt messages（只保留 user）
-            prompt_messages = self._build_prompt_messages(user_content, len(item.get("images", [])))
             self.data.append({
-                "prompt": prompt_messages,
+                "user_content": user_content,
                 "image_paths": item.get("images", []),
                 "gt_annotations": gt,
             })
         logger.info(f"[GRPODataset] Loaded {len(self.data)} samples from {data_path}")
 
-    def _build_prompt_messages(self, text: str, num_images: int) -> List[Dict]:
-        """将 user content 中的 <image> 替换为 image content block。"""
+    def _build_prompt_messages(self, text: str, num_images: int, images: List[Image.Image]) -> List[Dict]:
         parts = text.split("<image>")
         contents = []
         img_idx = 0
         for i, part in enumerate(parts):
             if i > 0 and img_idx < num_images:
-                contents.append({"type": "image"})
+                contents.append({"type": "image", "image": images[img_idx]})
                 img_idx += 1
             if part.strip():
                 contents.append({"type": "text", "text": part})
         # 补齐剩余图片
         while img_idx < num_images:
-            contents.insert(0, {"type": "image"})
+            contents.insert(0, {"type": "image", "image": images[img_idx]})
             img_idx += 1
         return [{"role": "user", "content": contents}]
 
@@ -120,8 +114,8 @@ class GRPODataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
         images = [self._open_image(p) for p in item["image_paths"]]
+        prompt = self._build_prompt_messages(item["user_content"], len(images), images)
         return {
-            "prompt": item["prompt"],
-            "images": images,
+            "prompt": prompt,
             "gt_annotations": item["gt_annotations"],
         }
