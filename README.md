@@ -180,6 +180,38 @@ AD-Compare/
 3. **训练后权重**：按四阶段训练管线训练获得，（训练好的版本：https://hf-mirror.com/chenyanghai123/stage3_multitask_sft_merged）
                   (GRPO定位强化版本：https://huggingface.co/chenyanghai123/AD-Compare-Qwen3-VL-8B)
 
+## Examples
+
+以下为 AD-Compare 模型的推理示例，覆盖三种任务类型。
+
+> 每张图的左上角缩略图为正常参考图（Ref），红框为模型预测的缺陷位置。bbox 坐标在 0-1000 归一化空间。
+
+---
+
+### 示例1：皮革折痕
+
+| 检测结果 | 任务输出 |
+|---|---|
+| <img src="images/image2.jpg" width="420"> | **任务一：缺陷定位（Grounding）**<br>bbox_2d: [660, 458, 900, 585]<br>label: small fold indentation<br><br>**任务二：缺陷分类（Classification）**<br>A. Yes（有缺陷）✓<br><br>**任务三：缺陷描述（Description）**<br>A small, raised fold disrupting the leather's natural grain pattern. Located in the middle-right region. |
+
+---
+
+### 示例2：木板多孔洞
+
+| 检测结果 | 任务输出 |
+|---|---|
+| <img src="images/image3.jpg" width="1560"> | **任务一：缺陷定位（Grounding）**<br>① [155, 227, 220, 307] · wooden surface holes<br>② [688, 265, 721, 302] · wooden surface holes<br>③ [732, 181, 773, 220] · wooden surface holes<br><br>**任务二：缺陷分类（Classification）**<br>A. Yes（有缺陷）✓<br><br>**任务三：缺陷描述（Description）**<br>Three distinct holes with dark centers and rough edges appear on the wood surface. These holes break the natural wood grain continuity seen in the reference image. The defect is located in the top-left region of the image. Severity is assessed as minor. Likely cause: Wood boring insects or mechanical damage during processing. |
+
+---
+
+### 示例3：药片红色污染点
+
+| 检测结果 | 任务输出 |
+|---|---|
+| <img src="images/image4.jpg" width="360"> | **任务一：缺陷定位（Grounding）**<br>① [333, 275, 401, 345] · small red specks<br>② [538, 498, 600, 571] · small red specks<br><br>**任务二：缺陷分类（Classification）**<br>A. Yes（有缺陷）✓<br><br>**任务三：缺陷描述（Description）**<br>Small dark specks and a white scratch on the pill surface. Located in the center region. |
+
+---
+
 ## License
 
 Apache-2.0
